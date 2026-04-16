@@ -28,6 +28,7 @@ html, body {
     display: flex;
     align-items: center;
     justify-content: center;
+    position: relative;
 }
 
 canvas {
@@ -39,6 +40,59 @@ canvas {
     aspect-ratio: 256 / 240;
     object-fit: contain;
 }
+
+/* ================= MOBILE CONTROLS ================= */
+
+#mobile-controls {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+
+/* Left side (X / Z) */
+#left-controls {
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+    display: flex;
+    gap: 10px;
+    pointer-events: auto;
+}
+
+/* Right side (Arrows) */
+#right-controls {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    display: flex;
+    gap: 10px;
+    pointer-events: auto;
+}
+
+.control-btn {
+    width: 60px;
+    height: 60px;
+    background: rgba(255,255,255,0.15);
+    border: 2px solid rgba(255,255,255,0.4);
+    border-radius: 12px;
+    color: white;
+    font-size: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+}
+
+.control-btn:active {
+    background: rgba(255,255,255,0.35);
+}
+
+/* hidden on desktop */
+.hidden {
+    display: none !important;
+}
 </style>
 </head>
 
@@ -46,6 +100,19 @@ canvas {
 
 <div id="game-container">
     <canvas id="c2canvas" width="256" height="240"></canvas>
+
+    <!-- MOBILE CONTROLS -->
+    <div id="mobile-controls">
+        <div id="left-controls">
+            <div class="control-btn" data-key="88">X</div>
+            <div class="control-btn" data-key="90">Z</div>
+        </div>
+
+        <div id="right-controls">
+            <div class="control-btn" data-key="37">←</div>
+            <div class="control-btn" data-key="39">→</div>
+        </div>
+    </div>
 </div>
 
 <script src="jquery-3.4.1.min.js"></script>
@@ -54,12 +121,62 @@ canvas {
 <script>
 jQuery(document).ready(function () {
 
-    // Optional: fixes some black screen issues on some PCs
     if (typeof cr_setRuntimeProperty !== "undefined") {
         cr_setRuntimeProperty("forceCanvas2D", true);
     }
 
     cr_createRuntime("c2canvas");
+
+    // ================= DEVICE DETECTION =================
+    const isTouchDevice =
+        ("ontouchstart" in window) ||
+        (navigator.maxTouchPoints > 0) ||
+        (navigator.msMaxTouchPoints > 0);
+
+    const mobileControls = document.getElementById("mobile-controls");
+
+    if (!isTouchDevice) {
+        mobileControls.classList.add("hidden");
+    }
+
+    // ================= KEY EMULATION =================
+    function sendKey(type, keyCode) {
+        document.dispatchEvent(new KeyboardEvent(type, {
+            keyCode: keyCode,
+            which: keyCode,
+            bubbles: true
+        }));
+    }
+
+    function bindButton(btn) {
+        const key = parseInt(btn.getAttribute("data-key"));
+
+        btn.addEventListener("touchstart", (e) => {
+            e.preventDefault();
+            sendKey("keydown", key);
+        });
+
+        btn.addEventListener("touchend", (e) => {
+            e.preventDefault();
+            sendKey("keyup", key);
+        });
+
+        btn.addEventListener("mousedown", (e) => {
+            e.preventDefault();
+            sendKey("keydown", key);
+        });
+
+        btn.addEventListener("mouseup", (e) => {
+            e.preventDefault();
+            sendKey("keyup", key);
+        });
+
+        btn.addEventListener("mouseleave", (e) => {
+            sendKey("keyup", key);
+        });
+    }
+
+    document.querySelectorAll(".control-btn").forEach(bindButton);
 });
 
 // Pause game when tab is hidden
