@@ -41,7 +41,7 @@ canvas {
     object-fit: contain;
 }
 
-/* ================= MOBILE CONTROLS ================= */
+/* ================= CONTROLS ================= */
 
 #mobile-controls {
     position: absolute;
@@ -50,7 +50,6 @@ canvas {
     pointer-events: none;
 }
 
-/* Left side */
 #left-controls {
     position: absolute;
     bottom: 20px;
@@ -60,7 +59,6 @@ canvas {
     pointer-events: auto;
 }
 
-/* Right side */
 #right-controls {
     position: absolute;
     bottom: 20px;
@@ -70,7 +68,6 @@ canvas {
     pointer-events: auto;
 }
 
-/* FIXED BUTTON STYLE (VISIBLE ON BLACK BACKGROUND) */
 .control-btn {
     width: 60px;
     height: 60px;
@@ -93,12 +90,7 @@ canvas {
     transform: scale(0.95);
 }
 
-/* Always show controls by default */
-#mobile-controls {
-    display: block;
-}
-
-/* Only hide on large desktop screens */
+/* show always on mobile, hide only real desktop */
 @media (min-width: 1024px) and (pointer: fine) {
     #mobile-controls {
         display: none;
@@ -112,16 +104,15 @@ canvas {
 <div id="game-container">
     <canvas id="c2canvas" width="256" height="240"></canvas>
 
-    <!-- MOBILE CONTROLS -->
     <div id="mobile-controls">
         <div id="left-controls">
-            <div class="control-btn" data-key="88">X</div>
-            <div class="control-btn" data-key="90">Z</div>
+            <div class="control-btn" id="btnX">X</div>
+            <div class="control-btn" id="btnZ">Z</div>
         </div>
 
         <div id="right-controls">
-            <div class="control-btn" data-key="37">←</div>
-            <div class="control-btn" data-key="39">→</div>
+            <div class="control-btn" id="btnLeft">←</div>
+            <div class="control-btn" id="btnRight">→</div>
         </div>
     </div>
 </div>
@@ -138,46 +129,51 @@ jQuery(document).ready(function () {
 
     cr_createRuntime("c2canvas");
 
-    function sendKey(type, keyCode) {
-        document.dispatchEvent(new KeyboardEvent(type, {
-            keyCode: keyCode,
-            which: keyCode,
-            bubbles: true
-        }));
+    const canvas = document.getElementById("c2canvas");
+
+    function fireMouse(type) {
+        const rect = canvas.getBoundingClientRect();
+
+        const event = new MouseEvent(type, {
+            bubbles: true,
+            cancelable: true,
+            clientX: rect.left + rect.width / 2,
+            clientY: rect.top + rect.height / 2
+        });
+
+        canvas.dispatchEvent(event);
     }
 
-    function bindButton(btn) {
-        const key = parseInt(btn.getAttribute("data-key"));
+    function bind(btnId) {
+        const btn = document.getElementById(btnId);
 
         btn.addEventListener("touchstart", (e) => {
             e.preventDefault();
-            sendKey("keydown", key);
+            fireMouse("mousedown");
         });
 
         btn.addEventListener("touchend", (e) => {
             e.preventDefault();
-            sendKey("keyup", key);
+            fireMouse("mouseup");
         });
 
         btn.addEventListener("mousedown", (e) => {
             e.preventDefault();
-            sendKey("keydown", key);
+            fireMouse("mousedown");
         });
 
         btn.addEventListener("mouseup", (e) => {
             e.preventDefault();
-            sendKey("keyup", key);
-        });
-
-        btn.addEventListener("mouseleave", (e) => {
-            sendKey("keyup", key);
+            fireMouse("mouseup");
         });
     }
 
-    document.querySelectorAll(".control-btn").forEach(bindButton);
+    bind("btnX");
+    bind("btnZ");
+    bind("btnLeft");
+    bind("btnRight");
 });
 
-// Pause game when tab is hidden
 function onVisibilityChanged() {
     if (typeof cr_setSuspended !== "undefined") {
         cr_setSuspended(!!document.hidden);
