@@ -2,86 +2,120 @@
 <html>
 <head>
 <meta charset="UTF-8" />
-<title>Game</title>
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+<title>Super Mario Bros.</title>
 
 <style>
-html, body {
-    margin: 0;
+* {
     padding: 0;
+    margin: 0;
+    box-sizing: border-box;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+}
+
+html, body {
     width: 100%;
     height: 100%;
     overflow: hidden;
     background: black;
+    font-family: "Segoe UI", sans-serif;
+    touch-action: none;
 }
 
-#wrap {
+#game-container {
     width: 100%;
     height: 100%;
-    position: relative;
+    background: black;
     display: flex;
     align-items: center;
     justify-content: center;
+    position: relative;
 }
 
 canvas {
+    display: block;
+    width: auto;
+    height: auto;
     max-width: 100%;
     max-height: 100%;
+    aspect-ratio: 256 / 240;
+    object-fit: contain;
 }
 
-/* UI */
-#ui {
+/* ================= MOBILE CONTROLS ================= */
+
+#mobile-controls {
     position: absolute;
     width: 100%;
     height: 100%;
     pointer-events: none;
 }
 
-.btn {
-    width: 70px;
-    height: 70px;
-    background: rgba(0,0,0,0.7);
-    border: 2px solid white;
-    color: white;
-    font-size: 18px;
-    border-radius: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    pointer-events: auto;
-}
-
-#left {
+#left-controls {
     position: absolute;
     bottom: 20px;
     left: 20px;
     display: flex;
-    gap: 10px;
+    gap: 12px;
+    pointer-events: auto;
 }
 
-#right {
+#right-controls {
     position: absolute;
     bottom: 20px;
     right: 20px;
     display: flex;
-    gap: 10px;
+    gap: 12px;
+    pointer-events: auto;
+}
+
+.control-btn {
+    width: 70px;
+    height: 70px;
+    background: rgba(0, 0, 0, 0.75);
+    border: 2px solid rgba(255, 255, 255, 0.95);
+    border-radius: 12px;
+    color: white;
+    font-size: 22px;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+}
+
+.control-btn:active {
+    background: rgba(255, 255, 255, 0.2);
+    transform: scale(0.95);
+}
+
+/* Hide on desktop */
+@media (min-width: 1024px) and (pointer:fine) {
+    #mobile-controls {
+        display: none;
+    }
 }
 </style>
 </head>
 
 <body>
 
-<div id="wrap">
+<div id="game-container">
     <canvas id="c2canvas" width="256" height="240"></canvas>
 
-    <div id="ui">
-        <div id="left">
-            <div class="btn" id="leftBtn">←</div>
-            <div class="btn" id="rightBtn">→</div>
+    <!-- MOBILE CONTROLS -->
+    <div id="mobile-controls">
+        <div id="left-controls">
+            <div class="control-btn" id="btnLeft">←</div>
+            <div class="control-btn" id="btnRight">→</div>
         </div>
 
-        <div id="right">
-            <div class="btn" id="jumpBtn">Z</div>
-            <div class="btn" id="runBtn">X</div>
+        <div id="right-controls">
+            <div class="control-btn" id="btnX">X</div>
+            <div class="control-btn" id="btnZ">Z</div>
         </div>
     </div>
 </div>
@@ -94,65 +128,108 @@ jQuery(document).ready(function () {
 
     cr_createRuntime("c2canvas");
 
-    const canvas = document.getElementById("c2canvas");
+    // ============================
+    // KEYBOARD PLUGIN PATCH SYSTEM
+    // ============================
+    let runtime = null;
+    let keyboard = null;
 
-    function touchDown() {
-        const rect = canvas.getBoundingClientRect();
+    function findKeyboardInstance(rt) {
+        if (!rt || !rt.types)
+            return null;
 
-        const e = new TouchEvent("touchstart", {
-            bubbles: true,
-            cancelable: true,
-            touches: [new Touch({
-                identifier: Date.now(),
-                target: canvas,
-                clientX: rect.left + rect.width / 2,
-                clientY: rect.top + rect.height / 2
-            })]
-        });
+        for (let t in rt.types) {
+            if (!rt.types.hasOwnProperty(t))
+                continue;
 
-        canvas.dispatchEvent(e);
+            let typeObj = rt.types[t];
+            if (!typeObj || !typeObj.instances || !typeObj.instances.length)
+                continue;
+
+            for (let i = 0; i < typeObj.instances.length; i++) {
+                let inst = typeObj.instances[i];
+
+                // Construct 2 Keyboard plugin has "keyMap"
+                if (inst && inst.keyMap && inst.keyMap.length === 256) {
+                    return inst;
+                }
+            }
+        }
+
+        return null;
     }
 
-    function touchUp() {
-        const e = new TouchEvent("touchend", {
-            bubbles: true,
-            cancelable: true,
-            touches: []
-        });
+    function setKeyDown(keyCode, isDown) {
+        if (!keyboard)
+            return;
 
-        canvas.dispatchEvent(e);
+        keyboard.keyMap[keyCode] = isDown;
+
+        // Optional: keep triggerKey updated (helps some events)
+        keyboard.triggerKey = keyCode;
     }
 
-    function bind(id) {
-        const btn = document.getElementById(id);
+    function bindButton(btnId, keyCode) {
+        const btn = document.getElementById(btnId);
 
-        btn.addEventListener("touchstart", (e) => {
+        function press(e) {
             e.preventDefault();
-            touchDown();
-        });
+            setKeyDown(keyCode, true);
+        }
 
-        btn.addEventListener("touchend", (e) => {
+        function release(e) {
             e.preventDefault();
-            touchUp();
-        });
+            setKeyDown(keyCode, false);
+        }
 
-        btn.addEventListener("mousedown", (e) => {
-            e.preventDefault();
-            touchDown();
-        });
+        btn.addEventListener("touchstart", press, { passive: false });
+        btn.addEventListener("touchend", release, { passive: false });
+        btn.addEventListener("touchcancel", release, { passive: false });
 
-        btn.addEventListener("mouseup", (e) => {
-            e.preventDefault();
-            touchUp();
-        });
+        btn.addEventListener("mousedown", press);
+        btn.addEventListener("mouseup", release);
+        btn.addEventListener("mouseleave", release);
     }
 
-    bind("leftBtn");
-    bind("rightBtn");
-    bind("jumpBtn");
-    bind("runBtn");
+    // Wait for runtime to exist, then patch keyboard
+    let tries = 0;
+    const timer = setInterval(function () {
+        tries++;
 
+        runtime = window.cr_getC2Runtime ? window.cr_getC2Runtime() : null;
+
+        if (runtime && !keyboard) {
+            keyboard = findKeyboardInstance(runtime);
+        }
+
+        if (keyboard) {
+            clearInterval(timer);
+
+            // Bind buttons to actual keyboard keys
+            bindButton("btnLeft", 37);  // Left Arrow
+            bindButton("btnRight", 39); // Right Arrow
+            bindButton("btnZ", 90);     // Z
+            bindButton("btnX", 88);     // X
+
+            console.log("Mobile controls patched successfully!");
+        }
+
+        if (tries > 200) {
+            clearInterval(timer);
+            console.log("FAILED: Could not locate Construct 2 keyboard plugin.");
+        }
+
+    }, 50);
 });
+
+// Pause game when tab is hidden
+function onVisibilityChanged() {
+    if (typeof cr_setSuspended !== "undefined") {
+        cr_setSuspended(!!document.hidden);
+    }
+}
+
+document.addEventListener("visibilitychange", onVisibilityChanged);
 </script>
 
 </body>
