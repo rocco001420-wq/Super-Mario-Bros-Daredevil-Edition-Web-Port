@@ -80,12 +80,12 @@ canvas {
     pointer-events: auto;
 }
 
-/* START */
+/* ENTER moved to middle right */
 #start-controls {
     position: absolute;
-    bottom: 120px;
-    left: 50%;
-    transform: translateX(-50%);
+    top: 50%;
+    right: 20px;
+    transform: translateY(-50%);
     pointer-events: auto;
 }
 
@@ -109,6 +109,13 @@ canvas {
 .control-btn:active {
     background: rgba(255, 255, 255, 0.2);
     transform: scale(0.95);
+}
+
+/* Enter button slightly wider */
+#btnEnter {
+    width: 110px;
+    height: 55px;
+    font-size: 16px;
 }
 
 /* Hide on desktop */
@@ -149,7 +156,7 @@ canvas {
             <div class="control-btn" id="btnZ">Z</div>
         </div>
 
-        <!-- START BUTTON -->
+        <!-- ENTER -->
         <div id="start-controls">
             <div class="control-btn" id="btnEnter">ENTER</div>
         </div>
