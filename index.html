@@ -53,16 +53,25 @@ canvas {
     pointer-events: none;
 }
 
-#left-controls {
+/* D-PAD */
+#dpad {
     position: absolute;
     bottom: 20px;
     left: 20px;
-    display: flex;
-    gap: 12px;
+    display: grid;
+    grid-template-columns: 70px 70px 70px;
+    grid-template-rows: 70px 70px 70px;
+    gap: 8px;
     pointer-events: auto;
 }
 
-#right-controls {
+#dpad .empty {
+    width: 70px;
+    height: 70px;
+}
+
+/* BUTTONS */
+#buttons {
     position: absolute;
     bottom: 20px;
     right: 20px;
@@ -71,6 +80,16 @@ canvas {
     pointer-events: auto;
 }
 
+/* START */
+#start-controls {
+    position: absolute;
+    bottom: 120px;
+    left: 50%;
+    transform: translateX(-50%);
+    pointer-events: auto;
+}
+
+/* Button styling */
 .control-btn {
     width: 70px;
     height: 70px;
@@ -78,7 +97,7 @@ canvas {
     border: 2px solid rgba(255, 255, 255, 0.95);
     border-radius: 12px;
     color: white;
-    font-size: 22px;
+    font-size: 20px;
     font-weight: bold;
     display: flex;
     align-items: center;
@@ -108,15 +127,33 @@ canvas {
 
     <!-- MOBILE CONTROLS -->
     <div id="mobile-controls">
-        <div id="left-controls">
+
+        <!-- DPAD -->
+        <div id="dpad">
+            <div class="empty"></div>
+            <div class="control-btn" id="btnUp">↑</div>
+            <div class="empty"></div>
+
             <div class="control-btn" id="btnLeft">←</div>
+            <div class="empty"></div>
             <div class="control-btn" id="btnRight">→</div>
+
+            <div class="empty"></div>
+            <div class="control-btn" id="btnDown">↓</div>
+            <div class="empty"></div>
         </div>
 
-        <div id="right-controls">
+        <!-- ACTION BUTTONS -->
+        <div id="buttons">
             <div class="control-btn" id="btnX">X</div>
             <div class="control-btn" id="btnZ">Z</div>
         </div>
+
+        <!-- START BUTTON -->
+        <div id="start-controls">
+            <div class="control-btn" id="btnEnter">ENTER</div>
+        </div>
+
     </div>
 </div>
 
@@ -128,9 +165,6 @@ jQuery(document).ready(function () {
 
     cr_createRuntime("c2canvas");
 
-    // ============================
-    // KEYBOARD PLUGIN PATCH SYSTEM
-    // ============================
     let runtime = null;
     let keyboard = null;
 
@@ -149,7 +183,6 @@ jQuery(document).ready(function () {
             for (let i = 0; i < typeObj.instances.length; i++) {
                 let inst = typeObj.instances[i];
 
-                // Construct 2 Keyboard plugin has "keyMap"
                 if (inst && inst.keyMap && inst.keyMap.length === 256) {
                     return inst;
                 }
@@ -164,8 +197,6 @@ jQuery(document).ready(function () {
             return;
 
         keyboard.keyMap[keyCode] = isDown;
-
-        // Optional: keep triggerKey updated (helps some events)
         keyboard.triggerKey = keyCode;
     }
 
@@ -191,7 +222,6 @@ jQuery(document).ready(function () {
         btn.addEventListener("mouseleave", release);
     }
 
-    // Wait for runtime to exist, then patch keyboard
     let tries = 0;
     const timer = setInterval(function () {
         tries++;
@@ -205,11 +235,18 @@ jQuery(document).ready(function () {
         if (keyboard) {
             clearInterval(timer);
 
-            // Bind buttons to actual keyboard keys
-            bindButton("btnLeft", 37);  // Left Arrow
-            bindButton("btnRight", 39); // Right Arrow
-            bindButton("btnZ", 90);     // Z
-            bindButton("btnX", 88);     // X
+            // Arrow Keys
+            bindButton("btnLeft", 37);
+            bindButton("btnRight", 39);
+            bindButton("btnUp", 38);
+            bindButton("btnDown", 40);
+
+            // Z / X
+            bindButton("btnZ", 90);
+            bindButton("btnX", 88);
+
+            // Enter
+            bindButton("btnEnter", 13);
 
             console.log("Mobile controls patched successfully!");
         }
@@ -222,7 +259,6 @@ jQuery(document).ready(function () {
     }, 50);
 });
 
-// Pause game when tab is hidden
 function onVisibilityChanged() {
     if (typeof cr_setSuspended !== "undefined") {
         cr_setSuspended(!!document.hidden);
